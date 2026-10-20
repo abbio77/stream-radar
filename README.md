@@ -1,27 +1,104 @@
-# STREAM RADAR — web app installabile per iPhone
+# Stream Radar 2.0
 
-## Cosa è pronto
-Interfaccia PWA in italiano: giorni, filtri per sette piattaforme, mini-locandine, voto TMDb, trame espandibili, filtro audio italiano. Funziona con `data.json`. Non serve una build.
+PWA italiana pubblicata su https://abbio77.github.io/stream-radar/.
+La grafica originale è conservata: sette piattaforme, filtri per data/tipo/audio,
+locandine, voti e schede espandibili. Non serve una build.
 
-## Pubblicazione gratuita con GitHub Pages
-1. Crea un **repository GitHub pubblico** chiamato `stream-radar`. Carica il contenuto di questa cartella (non la cartella esterna).
-2. In **Settings > Pages > Build and deployment**, seleziona **GitHub Actions**.
-3. In **Settings > Secrets and variables > Actions**, aggiungi il repository secret `TMDB_READ_ACCESS_TOKEN`, ottenuto gratuitamente da https://www.themoviedb.org/settings/api (richiede account TMDb). NON inserire il token in `app.js`, `data.json` o file pubblici.
-4. Apri **Actions > Stream Radar - refresh and publish > Run workflow**. Il sito pubblicato sarà indicativamente `https://TUOUSERNAME.github.io/stream-radar/` e sarà accessibile pubblicamente.
-5. Aprilo con **Safari su iPhone**, premi **Condividi > Aggiungi alla schermata Home** e scegli Stream Radar.
+## Ricerca quotidiana
 
-## Limiti IMPORTANTI della versione automatica
-- Il workflow aggiorna `data.json` con **candidati** per uscite recenti: confronta date di pubblicazione del *titolo* in TMDb e presenza del provider in Italia tramite dati JustWatch. Questo NON dimostra che il film o la stagione sia entrato proprio quel giorno nel catalogo italiano.
-- Non ricava in modo attendibile **nuovi episodi** di serie già avviate, né **doppiaggio italiano**, perciò imposta esplicitamente `Audio da verificare`. Non inventa date/voti/audio. Puoi correggerli manualmente in `data.json` solo con fonti verificate.
-- TMDb non espone voti IMDb da questa ricerca: viene visualizzato il voto **TMDb** se ha almeno 10 valutazioni.
-- Se non configuri il token TMDb l'app resterà vuota, ma è navigabile.
-- I trigger programmati di GitHub Actions non garantiscono esecuzione al minuto e possono essere ritardati. Il workflow prevede due trigger UTC e salta quello che non corrisponde alle 20:00 italiane, tenendo conto dell’ora legale. Le esecuzioni possono comunque subire ritardi della piattaforma.
-- La programmazione ChatGPT delle 20:00 **non modifica automaticamente** questa web app: sono sistemi indipendenti.
-- GitHub Pages pubblica un sito web: non inserire dati privati nei file.
-- L'attribuzione delle disponibilità streaming è a JustWatch tramite TMDb; ricordare i loro requisiti di attribuzione quando si amplia il progetto.
+`scripts/update.py` usa il secret GitHub `TMDB_READ_ACCESS_TOKEN` esclusivamente
+sul runner; nessuna chiave viene inviata al browser.
 
-## Verifica in locale
-Avvia `python3 -m http.server 8000` nella cartella e apri `http://localhost:8000/`.
+- Finestra di ricerca di 14 giorni, archivio di 45 giorni, paginazione completa
+  fino a 20 pagine per tipo. Il limite raggiunto fa fallire il controllo invece
+  di pubblicare una scansione troncata come completa.
+- Film: date digitali **IT** di TMDb (`release_dates`, tipo 4). Queste date non
+  certificano l'arrivo su Netflix o su un altro singolo catalogo.
+- Serie: ricerca `air_date` e dettagli delle stagioni correnti/recenti per includere
+  serie già avviate, con stagione/episodio e data originale chiaramente indicati.
+  La presenza della serie non dimostra la disponibilità di ogni nuovo episodio in Italia.
+- Solo offerte `flatrate` in Italia; esclusi noleggio e acquisto. Ogni aggiornamento
+  ricontrolla anche la disponibilità dei titoli in archivio.
+- Metadati aggiornati dalle schede complete. Voto del titolo TMDb con almeno 10
+  valutazioni e numero dei votanti. Non è un voto IMDb né un voto del singolo episodio.
+- Locandine italiane preferite; ripiego su immagini senza testo, inglesi e originali.
+  Se un'immagine non si carica, l'interfaccia usa l'icona locale.
+- Timeout, retry con backoff e gestione 429. Se una richiesta necessaria fallisce,
+  l'aggiornamento fallisce e il precedente `data.json` rimane intatto. Scrittura atomica.
+- I vecchi dati senza provenienza della data restano esplicitamente etichettati
+  come date del titolo, senza trasformarli in uscite italiane confermate.
 
-## Uso con una fonte migliori
-Per riportare esattamente date di arrivo, nuovi episodi e doppiaggio stagionale serve un fornitore dati con copertura italiana e licenza adeguata o una revisione editoriale quotidiana. La struttura `data.json` supporta tali campi, perciò si può integrare senza rifare l'interfaccia.
+L'aggiornamento parte da Actions manualmente, quando cambia il codice e ogni sera.
+I due trigger UTC coprono ora legale/solare; il controllo su ora italiana e data
+salta il trigger anticipato e impedisce duplicati nello stesso giorno. GitHub può
+ritardare le esecuzioni. Il pulsante **Aggiorna** ricarica il catalogo pubblicato;
+non esegue la ricerca sul server.
+
+## Audio italiano: verifica editoriale con fonte
+
+TMDb/JustWatch documentano la disponibilità del titolo, non tutte le tracce audio.
+Non si deduce il doppiaggio da `spoken_languages`, lingua originale, trama italiana,
+sottotitoli o presenza del provider in Italia.
+
+`audio-evidence.json` accetta verifiche editoriali riferite al preciso ID della
+scheda, con fonte HTTPS, piattaforma, regione IT, data di verifica, scadenza e nota.
+Le verifiche scadono entro 30 giorni dalla revisione anche se la scadenza dichiarata
+è più lunga. Per una serie sono obbligatori stagione ed episodio esatti.
+La scheda mostra il link alla fonte, la data e l'ambito della verifica.
+
+Esempio di struttura (i dati seguenti sono illustrativi, non prove reali):
+
+```json
+{
+  "Netflix-tv-123-s2e3": {
+    "platform": "Netflix",
+    "region": "IT",
+    "season": 2,
+    "episode": 3,
+    "status": "yes",
+    "checked_at": "2026-10-20",
+    "expires_at": "2026-10-27",
+    "source_url": "https://www.netflix.com/it/title/ID_REALE",
+    "scope": "Stagione 2, episodio 3, catalogo Italia",
+    "note": "Traccia audio italiana controllata nella scheda dell'episodio."
+  }
+}
+```
+
+`yes` significa audio italiano verificato (originale o doppiato); `sub` richiede
+una verifica esplicita che siano disponibili solo sottotitoli ITA, non la mera
+presenza dei sottotitoli. In ogni altro caso lo stato è `unknown` e il titolo è
+escluso dal filtro audio verificato. Il file è inizialmente vuoto: questa versione
+non pretende di certificare automaticamente doppiaggi senza una fonte affidabile.
+Per automatizzare anche le prove audio serve un feed autorizzato con copertura
+per piattaforma, territorio, stagione ed episodio; non è incluso nell'API TMDb.
+
+## App installata e pubblicazione
+
+Il service worker usa rete prima e cache come ripiego. Conserva l'ultimo catalogo
+per l'uso offline anche quando la richiesta aggiunge un cache-buster. Gli errori
+di aggiornamento non cancellano il catalogo già caricato; dati più vecchi di 36 ore
+sono segnalati. Giorni con mese, ricerca senza accenti e filtri accessibili.
+
+Il sito usa GitHub Pages. I file pubblici non devono contenere dati privati.
+La raccolta è serializzata con `concurrency` e testata prima della ricerca.
+Un errore della raccolta è visibile in Actions e non modifica il catalogo.
+
+## Verifica locale
+
+```sh
+python -m unittest discover -s tests -v
+node --test tests/test_app.cjs
+node --check app.js
+node --check sw.js
+python -m http.server 8000
+```
+
+Test con risposte API simulate: date digitali italiane, nuovi episodi, paginazione,
+ritiro provider, noleggio escluso, outage, conservazione dati, deduplicazione,
+voti, locandine, ambito/scadenza della verifica audio, filtri, sicurezza dei link,
+schede espandibili e aggiornamento fallito. La raccolta effettiva richiede il secret.
+
+Metadati: [TMDb](https://www.themoviedb.org/).
+Disponibilità: [JustWatch](https://www.justwatch.com/it) tramite TMDb.
+Questo prodotto utilizza l'API TMDb ma non è approvato o certificato da TMDb.
