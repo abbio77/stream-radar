@@ -42,3 +42,12 @@ test('Failed refresh preserves loaded items and restores refresh button',async()
   fail=true;await a.run('load()');assert.equal(a.run('state.items.length'),1);
   assert.match(a.nodes.get('notice').textContent,/ultimi dati/);assert.equal(a.nodes.get('refresh').disabled,false);
 });
+test('Episode grouping counts titles and never extends audio evidence to unknown episodes',()=>{
+  const a=app();
+  a.run(`state.items=[{title:'Serie',tmdb_id:1,media_type:'tv',platform:'Netflix',date:'2026-10-20',season:1,episode:2,audio_italiano:'yes',audio_source:'https://example.com/e2'},{title:'Serie',tmdb_id:1,media_type:'tv',platform:'Netflix',date:'2026-10-19',season:1,episode:1,audio_italiano:'unknown'}];`);
+  assert.equal(a.run('groupedItems(state.items).length'),1);
+  assert.equal(a.run('groupedItems(state.items)[0].audio_italiano'),'unknown');
+  assert.equal(a.run('groupedItems(state.items)[0].audio_source'),null);
+  assert.equal(a.run('groupedItems(state.items)[0].recent_episodes.length'),2);
+  a.run("state.audioOnly=true");assert.equal(a.run('groupedItems(getShown())[0].audio_italiano'),'yes');
+});
