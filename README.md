@@ -30,7 +30,8 @@ sul runner; nessuna chiave viene inviata al browser.
 
 L'aggiornamento parte da Actions manualmente, quando cambia il codice e ogni sera.
 I due trigger UTC coprono ora legale/solare; il controllo su ora italiana e data
-salta il trigger anticipato e impedisce duplicati nello stesso giorno. GitHub può
+salta il trigger anticipato e impedisce duplicati dopo una raccolta serale riuscita.
+Un aggiornamento manuale al mattino non annulla quello serale. GitHub può
 ritardare le esecuzioni. Il pulsante **Aggiorna** ricarica il catalogo pubblicato;
 non esegue la ricerca sul server.
 

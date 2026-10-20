@@ -45,9 +45,9 @@ jobs:
         shell: bash
         run: |
           TODAY=$(TZ=Europe/Rome date +%F)
-          UPDATED=$(python -c "import json; print(json.load(open('data.json')).get('updated_at','')[:10])")
+          UPDATED=$(python -c "import json; print(json.load(open('data.json')).get('updated_at','')[:13])")
           HOUR=$(TZ=Europe/Rome date +%H)
-          if [ "$HOUR" -ge 20 ] && [ "$TODAY" != "$UPDATED" ]; then
+          if [ "$HOUR" -ge 20 ] && [[ "$UPDATED" < "${TODAY}T20" ]]; then
             echo 'run_update=true' >> "$GITHUB_OUTPUT"
           fi
       - name: Update streaming catalog
