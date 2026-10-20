@@ -3,6 +3,8 @@
 import datetime as dt
 import json
 import math
+from functools import lru_cache
+from html.parser import HTMLParser
 import os
 import pathlib
 import re
@@ -52,6 +54,99 @@ def poster_url(details):
     return 'https://image.tmdb.org/t/p/w342' + path if path else None
 
 
+class AppleLanguages(HTMLParser):
+    """Read audio/subtitle definition lists; ignore trailers, scripts and other text."""
+    def __init__(self):
+        super().__init__()
+        self.pending = None
+        self.field = None
+        self.values = {'audio': [], 'subtitles': []}
+        self.text = []
+        self.skip = 0
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag in ('script', 'style'):
+            self.skip += 1
+        if tag == 'dt':
+            self.pending = {'languages-audio': 'audio', 'languages-subtitles': 'subtitles'}.get(attrs.get('data-testid'))
+        if tag == 'dd':
+            self.field = self.pending
+            self.pending = None
+
+    def handle_endtag(self, tag):
+        if tag in ('script', 'style'):
+            self.skip = max(0, self.skip - 1)
+        if tag == 'dd':
+            self.field = None
+
+    def handle_data(self, data):
+        if self.skip:
+            return
+        self.text.append(data)
+        if self.field:
+            self.values[self.field].append(data)
+
+    def italian_status(self):
+        audio = ' '.join(self.values['audio'])
+        subtitles = ' '.join(self.values['subtitles'])
+        if not audio.strip():
+            return 'unknown'
+        if re.search(r'\bItaliano\b', audio):
+            return 'yes'
+        return 'sub' if re.search(r'\bItaliano\b', subtitles) else 'unknown'
+
+
+@lru_cache(maxsize=128)
+def apple_page(url):
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != 'https' or parsed.netloc != 'tv.apple.com' or not re.match(r'^/it/(movie|episode)/', parsed.path):
+        raise ValueError('Only official Italian Apple TV movie/episode pages are supported')
+    request = urllib.request.Request(url, headers={'User-Agent': 'StreamRadar/2.0', 'Accept-Language': 'it-IT'})
+    with urllib.request.urlopen(request, timeout=15) as response:
+        final = urllib.parse.urlparse(response.geturl())
+        if final.netloc != 'tv.apple.com' or not final.path.startswith('/it/'):
+            raise ValueError('Unexpected source redirect')
+        page = response.read(2_000_001)
+    if len(page) > 2_000_000:
+        raise ValueError('Source page too large')
+    parser = AppleLanguages()
+    parser.feed(page.decode('utf8'))
+    return parser
+
+
+def checked_apple_audio(item, record, today):
+    unknown = {'audio_italiano': 'unknown', 'audio_note': 'Fonte audio ufficiale non confermata in questo aggiornamento.'}
+    url = record.get('source_url', '')
+    try:
+        if record.get('platform') != 'Apple TV+' or item['platform'] != 'Apple TV+' or record.get('region') != 'IT':
+            return unknown
+        if item.get('media_type') == 'tv' and (record.get('season') != item.get('season') or
+                record.get('episode') != item.get('episode') or item.get('episode') is None or '/episode/' not in url):
+            return unknown
+        if item.get('media_type') == 'movie' and '/movie/' not in url:
+            return unknown
+        page = apple_page(url)
+        text = ' '.join(page.text)
+        expected = record.get('expected_title', '')
+        if not expected or expected.casefold() not in text.casefold():
+            return unknown
+        if item.get('media_type') == 'tv' and not re.search(
+                rf'S{item["season"]}\s*,\s*E{item["episode"]}\s*:', text):
+            return unknown
+        status = page.italian_status()
+        if status == 'unknown':
+            return unknown
+        return {'audio_italiano': status, 'audio_source': url,
+                'audio_checked_at': today.isoformat(), 'audio_scope':
+                f'S{item["season"]} E{item["episode"]} · Apple TV Italia' if item.get('media_type') == 'tv' else 'Film · Apple TV Italia',
+                'audio_note': 'Traccia italiana indicata nella sezione Audio della scheda ufficiale, ricontrollata automaticamente.' if status == 'yes' else
+                'La scheda ufficiale elenca italiano nei sottotitoli ma non nell’elenco audio.'}
+    except Exception as error:
+        print(f'Audio source unavailable for {item["id"]}: {type(error).__name__}')
+        return unknown
+
+
 def audio_fields(item, evidence, today):
     """Use recent, reviewed, platform/region/episode-specific evidence only.
 
@@ -63,6 +158,8 @@ def audio_fields(item, evidence, today):
     record = evidence.get(item['id'])
     if not isinstance(record, dict):
         return unknown
+    if record.get('mode') == 'apple_tv':
+        return checked_apple_audio(item, record, today)
     checked = iso_day(record.get('checked_at'))
     expires = iso_day(record.get('expires_at'))
     url = record.get('source_url', '')

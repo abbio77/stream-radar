@@ -1,1 +1,34 @@
-{}
+{
+  "Apple TV+-movie-1288069": {
+    "expected_title": "Tenzing",
+    "source_url": "https://tv.apple.com/it/movie/tenzing/umc.cmc.6lic0hhuxkrbem0n29vzjopii",
+    "mode": "apple_tv",
+    "platform": "Apple TV+",
+    "region": "IT"
+  },
+  "Apple TV+-movie-1148365": {
+    "expected_title": "Matchbox: Il film",
+    "source_url": "https://tv.apple.com/it/movie/matchbox-il-film/umc.cmc.31qa8j1tn2cnpyk3fx43w928d",
+    "mode": "apple_tv",
+    "platform": "Apple TV+",
+    "region": "IT"
+  },
+  "Apple TV+-tv-196322-s2e8": {
+    "expected_title": "Dark Matter",
+    "season": 2,
+    "episode": 8,
+    "source_url": "https://tv.apple.com/it/episode/linterconnessione-fondamentale-del-tutto/umc.cmc.5f7hfuf0xozo0p32xzaxhhj3h",
+    "mode": "apple_tv",
+    "platform": "Apple TV+",
+    "region": "IT"
+  },
+  "Apple TV+-tv-196322-s2e7": {
+    "expected_title": "Dark Matter",
+    "season": 2,
+    "episode": 7,
+    "source_url": "https://tv.apple.com/it/episode/la-piramide/umc.cmc.5tz89nubt0qsvj2y1whrvyqun",
+    "mode": "apple_tv",
+    "platform": "Apple TV+",
+    "region": "IT"
+  }
+}

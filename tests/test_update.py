@@ -113,6 +113,32 @@ class UpdateTests(unittest.TestCase):
         self.assertEqual(calls[0]['watch_region'], 'IT')
         self.assertEqual(calls[0]['with_watch_monetization_types'], 'flatrate')
 
+    def test_apple_parser_separates_audio_subtitles_and_ignores_scripts(self):
+        parser = u.AppleLanguages()
+        parser.feed('<script>Italiano</script><dt data-testid="languages-audio">Audio</dt><dd>Inglese</dd><dt data-testid="languages-subtitles">Sottotitoli</dt><dd>Italiano</dd>')
+        self.assertEqual(parser.italian_status(), 'sub')
+        parser = u.AppleLanguages()
+        parser.feed('<dt data-testid="languages-audio">Audio</dt><dd><span>Italiano (AAC)</span>, Inglese</dd><dt data-testid="languages-subtitles">Sottotitoli</dt><dd>Inglese</dd>')
+        self.assertEqual(parser.italian_status(), 'yes')
+        parser = u.AppleLanguages()
+        parser.feed('<p>Trailer italiano</p><dt data-testid="languages-subtitles">Sottotitoli</dt><dd>Italiano</dd>')
+        self.assertEqual(parser.italian_status(), 'unknown')
+
+    def test_apple_audio_requires_correct_episode_and_fails_closed(self):
+        item = {'id': 'Apple TV+-tv-1-s2e3', 'platform': 'Apple TV+', 'media_type': 'tv', 'season': 2, 'episode': 3}
+        record = {'mode': 'apple_tv', 'platform': 'Apple TV+', 'region': 'IT', 'season': 2, 'episode': 3,
+                  'expected_title': 'Serie', 'source_url': 'https://tv.apple.com/it/episode/test/123'}
+        page = u.AppleLanguages()
+        page.feed('<h1>Serie</h1><p>S2, E3: Trama</p><dt data-testid="languages-audio">Audio</dt><dd>Italiano</dd>')
+        with patch.object(u, 'apple_page', return_value=page):
+            self.assertEqual(u.audio_fields(item, {item['id']: record}, TODAY)['audio_italiano'], 'yes')
+            self.assertEqual(u.audio_fields(item, {item['id']: dict(record, episode=2)}, TODAY)['audio_italiano'], 'unknown')
+        with patch.object(u, 'apple_page', side_effect=TimeoutError):
+            self.assertEqual(u.audio_fields(item, {item['id']: record}, TODAY)['audio_italiano'], 'unknown')
+        for url in ['http://tv.apple.com/it/movie/x/y', 'https://example.com/it/movie/x/y', 'https://tv.apple.com/us/movie/x/y']:
+            with self.assertRaises(ValueError):
+                u.apple_page(url)
+
     def test_missing_token_does_not_modify_catalog(self):
         with tempfile.TemporaryDirectory() as root:
             path = pathlib.Path(root) / 'data.json'

@@ -34,13 +34,35 @@ salta il trigger anticipato e impedisce duplicati nello stesso giorno. GitHub pu
 ritardare le esecuzioni. Il pulsante **Aggiorna** ricarica il catalogo pubblicato;
 non esegue la ricerca sul server.
 
-## Audio italiano: verifica editoriale con fonte
+## Audio italiano: controllo ufficiale e verifiche editoriali
 
 TMDb/JustWatch documentano la disponibilità del titolo, non tutte le tracce audio.
 Non si deduce il doppiaggio da `spoken_languages`, lingua originale, trama italiana,
 sottotitoli o presenza del provider in Italia.
 
-`audio-evidence.json` accetta verifiche editoriali riferite al preciso ID della
+Per le schede Apple TV associate in `audio-evidence.json`, il collector rilegge
+ogni giorno la pagina ufficiale italiana e separa l'elenco **Audio** da quello
+**Sottotitoli**. Controlla titolo e, per le serie, stagione/episodio. Un trailer
+italiano o la sola presenza dei sottotitoli non confermano il doppiaggio. Un errore,
+un cambio di pagina o un elenco assente riportano lo stato a `unknown`.
+Le associazioni iniziali comprendono Tenzing, Matchbox: Il film e Dark Matter S2 E7/E8.
+Le associazioni titolo/fonte sono curate; la rilettura delle lingue è automatica.
+
+Esempio di associazione automatica:
+
+```json
+{
+  "Apple TV+-movie-1288069": {
+    "mode": "apple_tv",
+    "platform": "Apple TV+",
+    "region": "IT",
+    "expected_title": "Tenzing",
+    "source_url": "https://tv.apple.com/it/movie/tenzing/umc.cmc.6lic0hhuxkrbem0n29vzjopii"
+  }
+}
+```
+
+Per le altre fonti, `audio-evidence.json` accetta verifiche editoriali riferite al preciso ID della
 scheda, con fonte HTTPS, piattaforma, regione IT, data di verifica, scadenza e nota.
 Le verifiche scadono entro 30 giorni dalla revisione anche se la scadenza dichiarata
 è più lunga. Per una serie sono obbligatori stagione ed episodio esatti.
@@ -68,17 +90,17 @@ Esempio di struttura (i dati seguenti sono illustrativi, non prove reali):
 `yes` significa audio italiano verificato (originale o doppiato); `sub` richiede
 una verifica esplicita che siano disponibili solo sottotitoli ITA, non la mera
 presenza dei sottotitoli. In ogni altro caso lo stato è `unknown` e il titolo è
-escluso dal filtro audio verificato. Il file è inizialmente vuoto: questa versione
-non pretende di certificare automaticamente doppiaggi senza una fonte affidabile.
-Per automatizzare anche le prove audio serve un feed autorizzato con copertura
-per piattaforma, territorio, stagione ed episodio; non è incluso nell'API TMDb.
+escluso dal filtro audio verificato. Per estendere il controllo automatico a tutte le piattaforme serve una fonte
+accessibile con copertura per territorio, stagione ed episodio; non è inclusa
+nell'API TMDb. Non si trasferisce una verifica Apple TV su un'altra piattaforma.
 
 ## App installata e pubblicazione
 
 Il service worker usa rete prima e cache come ripiego. Conserva l'ultimo catalogo
 per l'uso offline anche quando la richiesta aggiunge un cache-buster. Gli errori
 di aggiornamento non cancellano il catalogo già caricato; dati più vecchi di 36 ore
-sono segnalati. Giorni con mese, ricerca senza accenti e filtri accessibili.
+sono segnalati. Giorni con mese, ricerca senza accenti e filtri accessibili. Gli episodi sono
+raggruppati per titolo/piattaforma; il contatore principale conta i titoli distinti.
 
 Il sito usa GitHub Pages. I file pubblici non devono contenere dati privati.
 La raccolta è serializzata con `concurrency` e testata prima della ricerca.
