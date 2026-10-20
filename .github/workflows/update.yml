@@ -32,7 +32,7 @@ jobs:
       - name: Update streaming catalog
         if: steps.time.outputs.run_update == 'true' || github.event_name == 'workflow_dispatch'
         env:
-          TMDB_TOKEN: ${{ secrets.TMDB_TOKEN }}
+          TMDB_READ_ACCESS_TOKEN: ${{ secrets.TMDB_READ_ACCESS_TOKEN }}
         run: python scripts/update.py
       - name: Commit updated data
         if: steps.time.outputs.run_update == 'true' || github.event_name == 'workflow_dispatch'
