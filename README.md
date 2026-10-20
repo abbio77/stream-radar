@@ -40,7 +40,10 @@ non esegue la ricerca sul server.
 La raccolta giornaliera ora include gli identificativi esterni TMDb. Il modulo
 `scripts/audio_sources.py` associa le schede ufficiali da `homepage` del titolo
 e dagli identificativi Wikidata (Netflix, Prime Video, Crunchyroll e Apple TV).
-Non effettua ricerche per nome con abbinamenti incerti. Se Wikidata espone un
+Quando manca l’identificativo Wikidata, prova anche una ricerca pubblica in
+blocco per identificativo TMDb esatto (massimo 100 titoli per esecuzione). Le
+risposte ambigue con più entità vengono scartate. Non effettua ricerche per nome
+con abbinamenti incerti. Se Wikidata espone un
 identificativo TMDb diverso, l'associazione viene scartata. Anche il titolo della
 pagina deve corrispondere al titolo italiano o originale della scheda.
 

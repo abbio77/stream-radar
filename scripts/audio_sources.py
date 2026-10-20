@@ -91,8 +91,12 @@ def canonical_source(url, platform):
             match = re.search(r'/(series|watch)/([A-Z0-9]{8,15})(?:/|$)', parsed.path)
             return f'https://www.crunchyroll.com/it/{match[1]}/{match[2]}' if match else None
         if platform == 'Apple TV+' and re.search(r'/(movie|show|episode)/', parsed.path):
-            path = re.sub(r'^/[a-z]{2}(?:-[a-z]{2})?/', '/it/', parsed.path)
-            return 'https://tv.apple.com' + path
+            path = parsed.path
+            if re.match(r'^/(movie|show|episode)/', path):
+                path = '/it' + path
+            else:
+                path = re.sub(r'^/[a-z]{2}(?:-[a-z]{2})?/', '/it/', path)
+            return 'https://tv.apple.com' + path if re.match(r'^/it/(movie|show|episode)/', path) else None
     except (ValueError, TypeError):
         pass
     return None
@@ -132,6 +136,28 @@ class AutoAudioResolver:
             return {}
         data = json.loads(self.read(f'https://www.wikidata.org/wiki/Special:EntityData/{entity_id}.json'))
         return data.get('entities', {}).get(entity_id, {}).get('claims', {})
+
+    def lookup_missing_ids(self, details_by_id, keys):
+        missing = [(kind, id_) for kind, id_ in keys
+                   if isinstance(details_by_id.get((kind, id_), {}).get('id'), int)
+                   and not details_by_id[(kind, id_)].get('external_ids', {}).get('wikidata_id')][:100]
+        if not missing:
+            return {}
+        values = ' '.join(f'(wdt:{"P4947" if kind == "movie" else "P4983"} "{int(id_)}" "{kind}")' for kind, id_ in missing)
+        query = 'PREFIX wdt: <http://www.wikidata.org/prop/direct/> SELECT ?item ?id ?kind WHERE { VALUES (?property ?id ?kind) { ' + values + ' } ?item ?property ?id . }'
+        url = 'https://query.wikidata.org/sparql?' + urllib.parse.urlencode({'query': query, 'format': 'json'})
+        try:
+            data = json.loads(self.read(url))
+            found = {}
+            allowed = set(missing)
+            for row in data.get('results', {}).get('bindings', []):
+                key = (row['kind']['value'], int(row['id']['value']))
+                entity = row['item']['value'].rsplit('/', 1)[-1]
+                if key in allowed and re.fullmatch(r'Q\d+', entity):
+                    found.setdefault(key, set()).add(entity)
+            return {key: next(iter(entities)) for key, entities in found.items() if len(entities) == 1}
+        except Exception:
+            return {}  # Optional lookup failure must not prevent direct homepage checks.
 
     def source_urls(self, details, platform):
         urls = []
@@ -201,7 +227,7 @@ class AutoAudioResolver:
                     continue
                 if platform == 'Prime Video' and not re.search(
                         r'(?:guarda con prime|incluso con prime|watch with prime|iscriviti a prime e guarda)',
-                        ' '.join(page.tokens), flags=re.I):
+                        re.split(r'\b(?:Contenuti correlati|Related|Altri titoli)\b', ' '.join(page.tokens), maxsplit=1, flags=re.I)[0], flags=re.I):
                     return {'status': 'edition_unconfirmed', 'source': url}
                 return {'status': 'italian_listed', 'source': url}
             except Exception:
@@ -214,9 +240,13 @@ def enrich_catalog_audio(items, details_by_id, today, resolver=None):
     groups = {}
     for item in items:
         groups.setdefault((item['media_type'], item['tmdb_id'], item['platform']), []).append(item)
+    lookup_details = {key: dict(details, external_ids=dict(details.get('external_ids') or {})) for key, details in details_by_id.items()}
+    supported_keys = list(dict.fromkeys((kind, id_) for kind, id_, platform in groups if platform in SOURCE_HOSTS))
+    for key, entity in resolver.lookup_missing_ids(lookup_details, supported_keys).items():
+        lookup_details[key]['external_ids']['wikidata_id'] = entity
     def check(group):
         kind, id_, platform = group
-        return group, resolver.check(details_by_id[(kind, id_)], platform)
+        return group, resolver.check(lookup_details[(kind, id_)], platform)
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
         results = dict(pool.map(check, groups))
     counts = {'verified_reports': 0, 'series_indications': 0, 'unconfirmed_reports': 0}

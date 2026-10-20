@@ -59,6 +59,9 @@ class AudioSourcesTests(unittest.TestCase):
         p = page();p.tokens.insert(0, 'Prova Apple TV')
         with patch.object(r, 'page', return_value=p):
             self.assertEqual(r.check(details, 'Prime Video')['status'], 'edition_unconfirmed')
+        p.tokens.extend(['Contenuti correlati', 'Guarda con Prime'])
+        with patch.object(r, 'page', return_value=p):
+            self.assertEqual(r.check(details, 'Prime Video')['status'], 'edition_unconfirmed')
         p.tokens.insert(0, 'Guarda con Prime')
         with patch.object(r, 'page', return_value=p):
             self.assertEqual(r.check(details, 'Prime Video')['status'], 'italian_listed')
@@ -77,6 +80,20 @@ class AudioSourcesTests(unittest.TestCase):
         self.assertEqual(items[2]['audio_source'], 'https://tv.apple.com/it/episode/example/123')
         self.assertEqual(counts['verified_reports'], 2)
         self.assertEqual(counts['series_indications'], 1)
+
+    def test_missing_external_id_lookup_uses_exact_tmdb_ids_and_skips_ambiguity(self):
+        import json
+        r = AutoAudioResolver()
+        bindings = [{'kind': {'value': 'tv'}, 'id': {'value': '42'}, 'item': {'value': 'http://www.wikidata.org/entity/Q123'}}]
+        details = {('tv', 42): {'id': 42}}
+        with patch.object(r, 'read', return_value=json.dumps({'results': {'bindings': bindings}})) as read:
+            self.assertEqual(r.lookup_missing_ids(details, [('tv', 42)]), {('tv', 42): 'Q123'})
+            self.assertIn('P4983', read.call_args[0][0])
+        bindings.append({'kind': {'value': 'tv'}, 'id': {'value': '42'}, 'item': {'value': 'http://www.wikidata.org/entity/Q456'}})
+        with patch.object(r, 'read', return_value=json.dumps({'results': {'bindings': bindings}})):
+            self.assertEqual(r.lookup_missing_ids(details, [('tv', 42)]), {})
+        self.assertEqual(canonical_source('https://tv.apple.com/show/umc.cmc.123', 'Apple TV+'),
+                         'https://tv.apple.com/it/show/umc.cmc.123')
 
     def test_request_budget_stops_before_network(self):
         r = AutoAudioResolver(request_limit=0)
