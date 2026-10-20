@@ -9,7 +9,7 @@ locandine, voti e schede espandibili. Non serve una build.
 `scripts/update.py` usa il secret GitHub `TMDB_READ_ACCESS_TOKEN` esclusivamente
 sul runner; nessuna chiave viene inviata al browser.
 
-- Finestra di ricerca di 14 giorni, archivio di 45 giorni, paginazione completa
+- Finestra mobile di 7 giorni (oggi compreso, fuso Europe/Rome), senza archivio precedente, paginazione completa
   fino a 20 pagine per tipo. Il limite raggiunto fa fallire il controllo invece
   di pubblicare una scansione troncata come completa.
 - Film: date digitali **IT** di TMDb (`release_dates`, tipo 4). Queste date non
@@ -101,7 +101,9 @@ Il service worker usa rete prima e cache come ripiego. Conserva l'ultimo catalog
 per l'uso offline anche quando la richiesta aggiunge un cache-buster. Gli errori
 di aggiornamento non cancellano il catalogo già caricato; dati più vecchi di 36 ore
 sono segnalati. Giorni con mese, ricerca senza accenti e filtri accessibili. Gli episodi sono
-raggruppati per titolo/piattaforma; il contatore principale conta i titoli distinti.
+raggruppati in una sola scheda per titolo/piattaforma e raccolti in un elenco
+chiuso, espandibile nella scheda. I giorni scaduti scompaiono anche dal browser
+all’apertura, al cambio di data o al ritorno alla scheda; il contatore principale conta i titoli distinti.
 
 Il sito usa GitHub Pages. I file pubblici non devono contenere dati privati.
 La raccolta è serializzata con `concurrency` e testata prima della ricerca.

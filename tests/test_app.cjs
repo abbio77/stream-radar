@@ -12,8 +12,9 @@ class Element {
 }
 function app(fetcher=async()=>({ok:true,json:async()=>({items:[]})})) {
   const nodes=new Map();
-  const context={document:{createElement:tag=>new Element(tag),getElementById:id=>{if(!nodes.has(id))nodes.set(id,new Element());return nodes.get(id);}},
-    location:{href:'https://example.com/stream-radar/'},navigator:{onLine:true},fetch:fetcher,URL,Date,console};
+  class TestDate extends Date {constructor(...args){super(...(args.length?args:['2026-10-20T10:00:00Z']))}static now(){return new Date('2026-10-20T10:00:00Z').valueOf()}}
+  const context={document:{addEventListener(){},createElement:tag=>new Element(tag),getElementById:id=>{if(!nodes.has(id))nodes.set(id,new Element());return nodes.get(id);}},
+    location:{href:'https://example.com/stream-radar/'},navigator:{onLine:true},fetch:fetcher,URL,Date:TestDate,console,setInterval:()=>0};
   vm.createContext(context);
   vm.runInContext(fs.readFileSync('app.js','utf8'),context);
   return {run:code=>vm.runInContext(code,context),nodes};
@@ -64,4 +65,24 @@ test('Service worker stores cache-busted catalogue under a stable key and serves
   assert.equal(saved.has('https://example.com/stream-radar/data.json'),true);
   offline=true;request('https://example.com/stream-radar/data.json?_=2');
   assert.equal((await result).catalog,'saved');
+});
+test('Rolling week includes today and six previous dates in Rome, across month and DST boundaries',()=>{
+  const a=app();
+  assert.equal(a.run("weekWindow(new Date('2026-10-20T10:00:00Z')).start"),'2026-10-14');
+  assert.equal(a.run("weekWindow(new Date('2026-10-20T22:30:00Z')).today"),'2026-10-21');
+  assert.equal(a.run("weekWindow(new Date('2026-11-01T10:00:00Z')).start"),'2026-10-26');
+  assert.equal(a.run("weekWindow(new Date('2027-01-02T10:00:00Z')).start"),'2026-12-27');
+  a.run(`state.items=['2026-10-13','2026-10-14','2026-10-20','2026-10-21'].map(date=>({title:'Film '+date,date,platform:'Netflix',type:'film'}));render();`);
+  assert.deepEqual(Array.from(a.run('state.items.map(i=>i.date)')),['2026-10-14','2026-10-20']);
+  assert.equal(a.nodes.get('days').children.length,8); // All + exactly seven calendar dates.
+});
+test('A series renders once and its episode list starts collapsed',()=>{
+  const a=app();
+  a.run(`state.items=[1,2,3].map(episode=>({id:'e'+episode,tmdb_id:42,media_type:'tv',title:'Serie',type:'serie',kind:'S1 · E'+episode,episode,season:1,date:'2026-10-20',platform:'Netflix'}));render();`);
+  const articles=a.nodes.get('items').children.filter(n=>n.tag==='article');
+  assert.equal(articles.length,1);
+  const card=articles[0];assert.equal(card.children[0].children[1].children[0].textContent,'20 ottobre · Serie · 3 episodi questa settimana');
+  const episodes=card.children[1].children.find(n=>n.tag==='details');
+  assert.equal(episodes.children[0].textContent,'Episodi della settimana (3)');
+  assert.equal(episodes.attributes.open,undefined);
 });

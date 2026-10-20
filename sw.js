@@ -1,5 +1,5 @@
-const CACHE = 'stream-radar-v2.1';
-const ASSETS = ['./', './index.html', './app.js?v=20261020', './styles.css', './manifest.webmanifest', './icons/icon.svg'];
+const CACHE = 'stream-radar-v2.2';
+const ASSETS = ['./', './index.html', './app.js?v=20261020-week', './styles.css', './manifest.webmanifest', './icons/icon.svg'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
   self.skipWaiting();

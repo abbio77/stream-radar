@@ -77,7 +77,7 @@ class UpdateTests(unittest.TestCase):
         self.assertTrue(all(i['rating'] == 8.2 and i['audio_italiano'] == 'unknown' for i in new))
 
     def test_legacy_date_is_not_relabelled(self):
-        old = {'items': [{'id': 'Netflix-tv-2', 'date': '2026-10-10', 'platform': 'Netflix'}]}
+        old = {'items': [{'id': 'Netflix-tv-2', 'date': '2026-10-14', 'platform': 'Netflix'}]}
         items = u.build_catalog(FakeClient(), old, {}, TODAY)['items']
         legacy = next(i for i in items if i['id'] == 'Netflix-tv-2')
         self.assertEqual(legacy['date_basis'], 'title_original')
@@ -138,6 +138,20 @@ class UpdateTests(unittest.TestCase):
         for url in ['http://tv.apple.com/it/movie/x/y', 'https://example.com/it/movie/x/y', 'https://tv.apple.com/us/movie/x/y']:
             with self.assertRaises(ValueError):
                 u.apple_page(url)
+
+    def test_week_archive_drops_expired_and_future_entries(self):
+        old = {'items': [{'id': 'Netflix-tv-2', 'date': day, 'platform': 'Netflix'}
+                         for day in ('2026-10-13', '2026-10-14', '2026-10-21')]}
+        result = u.build_catalog(FakeClient(), old, {}, TODAY)
+        self.assertEqual(result['lookback_days'], 7)
+        self.assertTrue(all('2026-10-14' <= i['date'] <= '2026-10-20' for i in result['items']))
+        self.assertIn('2026-10-14', [i['date'] for i in result['items']])
+        client = u.Client('test')
+        queries = []
+        client.api = lambda path, params: queries.append(params) or {'results': [], 'total_pages': 1}
+        list(client.discover('tv', TODAY))
+        self.assertEqual(queries[0]['air_date.gte'], '2026-10-14')
+        self.assertEqual(queries[0]['air_date.lte'], '2026-10-20')
 
     def test_missing_token_does_not_modify_catalog(self):
         with tempfile.TemporaryDirectory() as root:

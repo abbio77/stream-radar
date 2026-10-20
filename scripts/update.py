@@ -20,8 +20,8 @@ PROVIDERS = {
     'Paramount+': [531, 1853], 'HBO Max': [1899, 384],
     'Crunchyroll': [283], 'Disney+': [337],
 }
-RETENTION_DAYS = 45
-LOOKBACK_DAYS = 14
+RETENTION_DAYS = 7
+LOOKBACK_DAYS = 7
 MAX_PAGES = 20
 
 
@@ -260,7 +260,7 @@ def release_events(kind, details, client, today):
 
 def build_catalog(client, old, evidence, today):
     now = dt.datetime.now(ZoneInfo('Europe/Rome')).isoformat()
-    cutoff = (today - dt.timedelta(days=RETENTION_DAYS)).isoformat()
+    cutoff = (today - dt.timedelta(days=RETENTION_DAYS - 1)).isoformat()
     candidates = {}
     for kind in ('movie', 'tv'):
         for result in client.discover(kind, today):
@@ -341,7 +341,7 @@ def build_catalog(client, old, evidence, today):
         raise RuntimeError('Aggiornamento incompleto; catalogo invariato. ' + '; '.join(errors[:10]))
     ordered = sorted(items.values(), key=lambda x: (x['date'], x['platform'], x['title']), reverse=True)
     return {'schema_version': 2, 'updated_at': now, 'lookback_days': LOOKBACK_DAYS,
-            'notice': 'Candidati degli ultimi 14 giorni e archivio di 45 giorni. Date digitali italiane per i film; prima messa in onda per gli episodi. L’arrivo nel singolo catalogo italiano resta da confermare. Audio verificato solo con una fonte specifica.',
+            'notice': 'Segnalazioni degli ultimi 7 giorni, oggi compreso. Date digitali italiane per i film; prima messa in onda per gli episodi. L’arrivo nel singolo catalogo italiano resta da confermare. Audio verificato solo con una fonte specifica.',
             'source_note': 'Metadati e voti: TMDb. Disponibilità: JustWatch tramite TMDb. Questo prodotto utilizza l’API TMDb ma non è approvato o certificato da TMDb.',
             'items': ordered}
 
