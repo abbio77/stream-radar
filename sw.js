@@ -1,5 +1,5 @@
-const CACHE = 'stream-radar-v2';
-const ASSETS = ['./', './index.html', './app.js', './styles.css', './manifest.webmanifest', './icons/icon.svg'];
+const CACHE = 'stream-radar-v2.1';
+const ASSETS = ['./', './index.html', './app.js?v=20261020', './styles.css', './manifest.webmanifest', './icons/icon.svg'];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
   self.skipWaiting();
@@ -20,7 +20,7 @@ self.addEventListener('fetch', event => {
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
     try {
-      const response = await fetch(event.request);
+      const response = await fetch(event.request, {cache: 'no-cache'});
       if (!response.ok) throw new Error('HTTP ' + response.status);
       await cache.put(key, response.clone());
       return response;

@@ -51,3 +51,17 @@ test('Episode grouping counts titles and never extends audio evidence to unknown
   assert.equal(a.run('groupedItems(state.items)[0].recent_episodes.length'),2);
   a.run("state.audioOnly=true");assert.equal(a.run('groupedItems(getShown())[0].audio_italiano'),'yes');
 });
+test('Service worker stores cache-busted catalogue under a stable key and serves it offline',async()=>{
+  const handlers={}, saved=new Map();
+  let offline=false;
+  const cache={put:async(k,v)=>saved.set(k,v),match:async k=>saved.get(k)};
+  const worker={self:{registration:{scope:'https://example.com/stream-radar/'},location:{origin:'https://example.com'},addEventListener:(name,fn)=>handlers[name]=fn},
+    caches:{open:async()=>cache},URL,fetch:async(request,options)=>{assert.equal(options.cache,'no-cache');if(offline)throw Error('offline');return {ok:true,clone:()=>({catalog:'saved'})};}};
+  vm.createContext(worker);vm.runInContext(fs.readFileSync('sw.js','utf8'),worker);
+  let result;
+  const request=url=>handlers.fetch({request:{method:'GET',url},respondWith:p=>result=p});
+  request('https://example.com/stream-radar/data.json?_=1');await result;
+  assert.equal(saved.has('https://example.com/stream-radar/data.json'),true);
+  offline=true;request('https://example.com/stream-radar/data.json?_=2');
+  assert.equal((await result).catalog,'saved');
+});
