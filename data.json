@@ -1,1 +1,24 @@
-{"updated_at":null,"notice":"La web app è pronta. Per mostrare uscite aggiornate automaticamente, configura il token TMDb e pubblica il progetto. Finché non è configurata, non vengono mostrati titoli inventati o non verificati.","source_note":"TMDb fornisce metadati e provider indicativi; le date di disponibilità nei cataloghi e il doppiaggio italiano richiedono verifica specifica.","items":[]}
+{
+  "updated_at": "2026-10-20T10:43:25.383294+02:00",
+  "notice": "Novità potenziali: TMDb segnala titoli con data recente e streaming incluso in Italia, ma NON certifica il giorno di aggiunta al catalogo. I nuovi episodi delle serie già avviate e i doppiaggi italiani richiedono una fonte aggiuntiva.",
+  "source_note": "Metadati: TMDb. Disponibilità provider: JustWatch tramite TMDb. Non ufficialmente approvata/certificata da TMDb.",
+  "items": [
+    {
+      "id": "Crunchyroll-tv-204084",
+      "date": "2026-10-17",
+      "platform": "Crunchyroll",
+      "title": "Dreamland",
+      "type": "serie",
+      "kind": "Serie",
+      "genre": "",
+      "plot": "Trama non disponibile in italiano.",
+      "rating": null,
+      "rating_source": null,
+      "poster": "https://image.tmdb.org/t/p/w342/lZ88hdOO2J7EX40fctU1leGgZFu.jpg",
+      "audio_italiano": "unknown",
+      "audio_note": "TMDb non documenta la traccia audio italiana: verifica nella piattaforma.",
+      "access": "Segnalato in abbonamento in Italia su TMDb/JustWatch; data indicata riferita al titolo, NON confermata come data ingresso in catalogo.",
+      "link": "https://www.themoviedb.org/tv/204084-dreamland/watch?locale=IT"
+    }
+  ]
+}
