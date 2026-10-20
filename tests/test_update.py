@@ -43,6 +43,11 @@ class FakeClient:
 
 
 class UpdateTests(unittest.TestCase):
+    def setUp(self):
+        patcher = patch.object(u, 'enrich_catalog_audio', return_value={})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_digital_date_and_episode_not_title_premiere(self):
         client = FakeClient()
         items = u.build_catalog(client, {}, {}, TODAY)['items']

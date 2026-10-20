@@ -35,6 +35,41 @@ Un aggiornamento manuale al mattino non annulla quello serale. GitHub può
 ritardare le esecuzioni. Il pulsante **Aggiorna** ricarica il catalogo pubblicato;
 non esegue la ricerca sul server.
 
+## Ricerca automatica delle fonti audio
+
+La raccolta giornaliera ora include gli identificativi esterni TMDb. Il modulo
+`scripts/audio_sources.py` associa le schede ufficiali da `homepage` del titolo
+e dagli identificativi Wikidata (Netflix, Prime Video, Crunchyroll e Apple TV).
+Non effettua ricerche per nome con abbinamenti incerti. Se Wikidata espone un
+identificativo TMDb diverso, l'associazione viene scartata. Anche il titolo della
+pagina deve corrispondere al titolo italiano o originale della scheda.
+
+Le pagine pubbliche vengono lette senza account né credenziali. Il controllo
+considera soltanto l'elenco Audio separato dai Sottotitoli: ignora menu lingua,
+trailer, script e dizionari di traduzione. Prime Video richiede anche un'indicazione
+dell'edizione inclusa in Prime, evitando di usare la scheda di un canale aggiuntivo.
+Limiti: quattro richieste concorrenti, timeout di 10 secondi, budget di 180 richieste
+per esecuzione e cache in memoria per ridurre letture duplicate. Errori, limiti,
+identificativi mancanti o pagine dinamiche lasciano l'audio non confermato e non
+interrompono l'aggiornamento del catalogo.
+
+- Film con italiano nell'elenco ufficiale: **Audio italiano**, con fonte e data.
+- Serie con italiano sulla scheda generale: **Italiano indicato per la serie**,
+  senza confermare la traccia di un nuovo episodio. Questo stato resta escluso
+  dal filtro **Solo audio italiano verificato**.
+- Fonte specifica di un episodio verificata: **Audio italiano** per quel solo
+  episodio. Le associazioni Apple TV esistenti continuano a essere rilette.
+- Fonte assente, inaccessibile o non conclusiva: **Audio da verificare**, con la
+  ragione e, quando disponibile, un collegamento alla scheda della piattaforma.
+
+`audio_summary` nel catalogo riporta i conteggi delle segnalazioni verificate,
+delle indicazioni per serie e delle segnalazioni ancora non confermate. I conteggi
+si riferiscono alle singole disponibilità/episodi, non ai titoli distinti.
+La copertura non è completa: Disney+, Paramount+ e HBO Max non hanno ancora un
+lettore audio dedicato; per loro rimangono utilizzabili prove editoriali specifiche.
+Crunchyroll può non esporre le lingue nella pagina servita al collector; in tal caso
+non viene aggirato il blocco né dedotto il doppiaggio.
+
 ## Audio italiano: controllo ufficiale e verifiche editoriali
 
 TMDb/JustWatch documentano la disponibilità del titolo, non tutte le tracce audio.

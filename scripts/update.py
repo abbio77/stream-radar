@@ -15,6 +15,9 @@ import urllib.request
 from zoneinfo import ZoneInfo
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
+import sys
+sys.path.insert(0, str(ROOT / 'scripts'))
+from audio_sources import enrich_catalog_audio
 PROVIDERS = {
     'Netflix': [8], 'Prime Video': [9, 119], 'Apple TV+': [350],
     'Paramount+': [531, 1853], 'HBO Max': [1899, 384],
@@ -280,12 +283,13 @@ def build_catalog(client, old, evidence, today):
             continue
         candidates[(kind, id_)] = None
         history.setdefault((kind, id_), []).append(item)
-    items, errors = {}, []
+    items, errors, details_by_id = {}, [], {}
     for kind, id_ in candidates:
         try:
             details = client.api(f'{kind}/{id_}', {'language': 'it-IT',
-                'append_to_response': 'watch/providers,images,release_dates',
+                'append_to_response': 'watch/providers,images,release_dates,external_ids',
                 'include_image_language': 'it,en,null'})
+            details_by_id[(kind, id_)] = details
             if details.get('adult'):
                 continue
             provider = details.get('watch/providers', {}).get('results', {}).get('IT', {})
@@ -339,10 +343,11 @@ def build_catalog(client, old, evidence, today):
     if errors:
         # Never stamp partial scans as successful or discard valid history on an API outage.
         raise RuntimeError('Aggiornamento incompleto; catalogo invariato. ' + '; '.join(errors[:10]))
+    audio_summary = enrich_catalog_audio(list(items.values()), details_by_id, today)
     ordered = sorted(items.values(), key=lambda x: (x['date'], x['platform'], x['title']), reverse=True)
-    return {'schema_version': 2, 'updated_at': now, 'lookback_days': LOOKBACK_DAYS,
-            'notice': 'Segnalazioni degli ultimi 7 giorni, oggi compreso. Date digitali italiane per i film; prima messa in onda per gli episodi. L’arrivo nel singolo catalogo italiano resta da confermare. Audio verificato solo con una fonte specifica.',
-            'source_note': 'Metadati e voti: TMDb. Disponibilità: JustWatch tramite TMDb. Questo prodotto utilizza l’API TMDb ma non è approvato o certificato da TMDb.',
+    return {'schema_version': 2, 'updated_at': now, 'lookback_days': LOOKBACK_DAYS, 'audio_summary': audio_summary,
+            'notice': 'Segnalazioni degli ultimi 7 giorni, oggi compreso. Date digitali italiane per i film; prima messa in onda per gli episodi. L’arrivo nel singolo catalogo italiano resta da confermare. Audio verificato solo con una fonte specifica. Italiano indicato per la serie non conferma automaticamente i nuovi episodi.',
+            'source_note': 'Metadati e voti: TMDb. Disponibilità: JustWatch tramite TMDb. Lingue: schede ufficiali delle piattaforme; associazioni identificativi tramite Wikidata. Questo prodotto utilizza l’API TMDb ma non è approvato o certificato da TMDb.',
             'items': ordered}
 
 

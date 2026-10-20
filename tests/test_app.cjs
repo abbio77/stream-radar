@@ -86,3 +86,10 @@ test('A series renders once and its episode list starts collapsed',()=>{
   assert.equal(episodes.children[0].textContent,'Episodi della settimana (3)');
   assert.equal(episodes.attributes.open,undefined);
 });
+test('Series-level Italian indication is visible but excluded from verified-episode filter',()=>{
+  const a=app();
+  a.run(`state.items=[{title:'Serie',platform:'Netflix',date:'2026-10-20',media_type:'tv',tmdb_id:1,audio_italiano:'unknown',audio_title_italiano:'yes',audio_title_source:'https://www.netflix.com/it/title/80115857'}];`);
+  assert.equal(a.run("audioLabel(state.items[0])[0]"),'Italiano indicato per la serie');
+  assert.equal(a.run('getShown().length'),1);
+  a.run('state.audioOnly=true');assert.equal(a.run('getShown().length'),0);
+});
