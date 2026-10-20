@@ -24,3 +24,22 @@ header,.identity,.resultsTop,.filterLabel{display:flex;align-items:center;justif
 @media(max-width:480px){.live{display:none}.tools input{flex-basis:100%}.tools select{flex-basis:100%}.summary strong{font-size:21px}.summary span{font-size:13px}}
 @media(max-width:350px){.app{padding-left:12px;padding-right:12px}.filterArea{padding:12px}.platforms{grid-template-columns:repeat(2,minmax(0,1fr))}.itemBtn{padding:12px;gap:10px}.poster{width:64px;height:92px}.title{font-size:19px}.hero{padding:20px 16px}.hero h2{font-size:29px}}
 @media(prefers-reduced-motion:reduce){.platformChip{transition:none}}
+
+/* Provider colors stay dark enough for white titles and secondary text. */
+[data-platform="netflix"]{--provider-bg:#511521;--provider-detail:#34131e;--provider-border:#b6374e;--provider-accent:#ff8998}
+[data-platform="amazonprime"]{--provider-bg:#103e55;--provider-detail:#102c40;--provider-border:#2484ad;--provider-accent:#7ddaff}
+[data-platform="appletv"]{--provider-bg:#343840;--provider-detail:#252930;--provider-border:#757e8b;--provider-accent:#e0e6ef}
+[data-platform="paramountplus"]{--provider-bg:#172f66;--provider-detail:#152449;--provider-border:#487dd6;--provider-accent:#9ecaff}
+[data-platform="hbomax"]{--provider-bg:#42245f;--provider-detail:#2e1d44;--provider-border:#9562be;--provider-accent:#dfb6ff}
+[data-platform="crunchyroll"]{--provider-bg:#582e16;--provider-detail:#3c2416;--provider-border:#c97935;--provider-accent:#ffc18a}
+[data-platform="disneyplus"]{--provider-bg:#104748;--provider-detail:#102f35;--provider-border:#2c9696;--provider-accent:#81e4df}
+.item[data-platform]{background:var(--provider-bg,var(--surface));border-color:var(--provider-border,var(--border));border-left:4px solid var(--provider-border,var(--border))}
+.item[data-platform] .detailBody{background:var(--provider-detail,var(--surface2));border-color:var(--provider-border,var(--border))}
+.item[data-platform] .platformName,.item[data-platform] .meta{color:#d2dbea}
+.item[data-platform] .detailBody .small{color:#d0dbea}
+.item[data-platform] .detailBody a,.item[data-platform] .episodeGroup summary{color:var(--provider-accent,#ffb1c2)}
+.groupName[data-platform]{border-bottom:2px solid var(--provider-border,var(--border));padding-bottom:12px}
+.groupName[data-platform] .platformTitle{color:var(--provider-accent,var(--text))}
+.platformChip[data-platform]{background:var(--provider-detail,#1c2434);border-color:var(--provider-border,#39445c)}
+.platformChip[data-platform].active{background:var(--provider-bg);border-color:var(--provider-accent);box-shadow:0 0 0 1px var(--provider-accent)}
+@media(hover:hover){.item[data-platform] .itemBtn:hover{background:#ffffff08}.platformChip[data-platform]:hover{background:var(--provider-bg)}}

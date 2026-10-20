@@ -1,5 +1,5 @@
-const CACHE = 'stream-radar-v2.4';
-const ASSETS = ['./', './index.html', './app.js?v=20261020-readable', './styles.css?v=20261020-readable', './manifest.webmanifest', './icons/icon.svg',...['netflix','amazonprime','appletv','paramountplus','hbomax','crunchyroll','disneyplus'].map(name=>'./icons/platforms/'+name+'.svg')];
+const CACHE = 'stream-radar-v2.5';
+const ASSETS = ['./', './index.html', './app.js?v=20261020-platform-colors', './styles.css?v=20261020-platform-colors', './manifest.webmanifest', './icons/icon.svg',...['netflix','amazonprime','appletv','paramountplus','hbomax','crunchyroll','disneyplus'].map(name=>'./icons/platforms/'+name+'.svg')];
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)));
   self.skipWaiting();
